@@ -11,24 +11,24 @@
 <script type="application/javascript">
     var ticks = [{
         value: 1,
-        type: 'major',
+        type: 'major'
     }, {
         value: 2,
-        type: 'minor',
+        type: 'minor'
     }, {
         value: 3,
-        type: 'minor',
+        type: 'minor'
     }, {
         value: 4,
-        type: 'minor',
+        type: 'minor'
     }, {
         value: 5,
-        type: 'major',
+        type: 'major'
     }];
 
     var marker = {};
-    marker.width = 20;
-    marker.height = 20;
+    marker.width = 30;
+    marker.height = 30;
     marker.totalHeight = marker.height;
 
     var tick = {};
@@ -39,60 +39,51 @@
     tick.lineWidth = 8;
 
     var graph = {};
-    graph.score = []; // the value to graph
     graph.totalWidth = 1000;
     graph.width = graph.totalWidth - marker.width;
     graph.markerCount = ticks.length;
 
     tick.increment = graph.width / (graph.markerCount - 1); // distance between the center of each tick
 
-
     var svg = d3.select('#graph-value-range');
 
     init();
 
+    // generate a valid value on the scale, rounded to the tenths place
+    // re-render the graph with that value
+    setInterval(function() {
+        var score = Math.round((Math.random() * (ticks.length - 1) + 1) * 10) / 10;
+        renderMarker([score]);
+    }, 1000);
+
     function init() {
         renderGraph();
-        renderMarker();
+        renderMarker([1]);
     }
 
     function renderGraph() {
-        svg.select('#value-range').remove();
-
         var valueRange = svg.append('g')
                 .attr('id', 'value-range')
-                .attr('transform', 'translate(' + 0 + ',' + marker.totalHeight + ')');
+                .attr('transform', 'translate(' + 0 + ',' + 0 + ')');
 
         for (var ii = 1; ii < ticks.length; ii++) {
-            valueRange.selectAll('#base-line')
+            valueRange.append('line')
                     .data([ii])
-                    .enter()
-                    .append('line')
+                    .attr('class', 'base-line')
                     .attr('y1', 0)
                     .attr('y2', 0)
-                    .attr('x1', function (d) {
-                        return calcPosition({
-                            value: d
-                        });
-                    })
-                    .attr('x2', function (d) {
-                        return calcPosition({
-                            value: ++d
-                        });
-                    })
-                    .attr('stroke', function (d) {
-                        return getColor({
-                            value: d + 0.5
-                        });
-                    })
+                    .attr('x1', wrapCalcPosition.call(this, 0))
+                    .attr('x2', wrapCalcPosition.call(this, 1))
+                    .attr('stroke', wrapGetColor.call(this, 0.5))
                     .attr('stroke-width', tick.lineWidth)
                     .attr('transform', 'translate(0,' + (tick.major.height - (tick.lineWidth / 2)) + ')');
         }
 
-        valueRange.selectAll('#tick')
+        valueRange.selectAll('.label')
                 .data(ticks)
                 .enter()
                 .append('line')
+                .attr('class', 'tick')
                 .attr('y1', function(d) {
                     return tick.major.height - tick[d.type].height;
                 })
@@ -102,10 +93,11 @@
                 .attr('stroke', getColor)
                 .attr('stroke-width', tick.lineWidth);
 
-        valueRange.selectAll('#label')
+        valueRange.selectAll('.label')
                 .data(ticks)
                 .enter()
                 .append('text')
+                .attr('class', 'label')
                 .attr('y', tick.major.height * 2)
                 .attr('x', calcPosition)
                 .attr('text-anchor', 'middle')
@@ -117,10 +109,33 @@
 
     }
 
+    function renderMarker(value) {
+        svg.select('#marker').remove();
+
+        svg.append('polygon')
+                .data(value)
+                .attr('id', 'marker')
+                .attr('points', (marker.width / 2 * -1) + ',0 ' + (marker.width / 2) + ',0 ' + 0 + ',' + marker.height)
+                .attr('fill', function(d) {
+                    return getColor({
+                        value: d
+                    })
+                })
+                .attr('transform', function(d) {
+                    return 'translate(' + calcPosition({value: d}) + ',' + (tick.major.height - marker.height - tick.lineWidth) + ')';
+                })
+    }
 
     function calcPosition(d) {
-        console.log(d)
         return (tick.increment * (d.value - 1)) + (marker.width / 2);
+    }
+
+    function wrapCalcPosition(increment) {
+        return function(d) {
+            return calcPosition({
+                value: d + increment
+            });
+        };
     }
 
     function getColor(d) {
@@ -134,6 +149,14 @@
         }
 
         return color;
+    }
+
+    function wrapGetColor(increment) {
+        return function(d) {
+            return getColor({
+                value: d + increment
+            });
+        };
     }
 
 </script>
