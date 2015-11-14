@@ -2,163 +2,197 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>d3: Graphing a value in a range</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
 </head>
 <body>
 <svg id="graph-value-range" width="480" height="100" viewBox="0 0 1000 200" preserveAspectRatio="xMinYMin"></svg>
 
 <script type="application/javascript">
-    var ticks = [{
-        value: 1,
-        type: 'major'
-    }, {
-        value: 2,
-        type: 'minor'
-    }, {
-        value: 3,
-        type: 'minor'
-    }, {
-        value: 4,
-        type: 'minor'
-    }, {
-        value: 5,
-        type: 'major'
-    }];
+    (function() {
+        // if there are a lot of ticks, these could be generated in a loop
+        var ticks = [{
+            value: 1,
+            type: 'major'
+        }, {
+            value: 2,
+            type: 'minor'
+        }, {
+            value: 3,
+            type: 'minor'
+        }, {
+            value: 4,
+            type: 'minor'
+        }, {
+            value: 5,
+            type: 'major'
+        }];
 
-    var marker = {};
-    marker.width = 30;
-    marker.height = 30;
-    marker.totalHeight = marker.height;
+        // this is used for the triangle that marks the value we're graphing
+        var marker = {};
+        marker.width = 30;
+        marker.height = 30;
 
-    var tick = {};
-    tick.major = {};
-    tick.major.height = 40;
-    tick.minor = {};
-    tick.minor.height = 20;
-    tick.lineWidth = 8;
+        // this is used to determine how to draw the tick marks in the graph
+        var tick = {};
+        tick.major = {};
+        tick.major.height = 40;
+        tick.minor = {};
+        tick.minor.height = 20;
+        tick.lineWidth = 8;
 
-    var graph = {};
-    graph.totalWidth = 1000;
-    graph.width = graph.totalWidth - marker.width;
-    graph.markerCount = ticks.length;
+        var graph = {};
+        graph.totalWidth = 1000; // this matches the width of the SVG's viewBox
+        graph.width = graph.totalWidth - marker.width; // width of the graph, minus some space on either side for the marker
+        graph.markerCount = ticks.length;
 
-    tick.increment = graph.width / (graph.markerCount - 1); // distance between the center of each tick
+        tick.increment = graph.width / (graph.markerCount - 1); // distance between the center of each tick
 
-    var svg = d3.select('#graph-value-range');
+        var svg = d3.select('#graph-value-range');
 
-    init();
+        init();
 
-    // generate a valid value on the scale, rounded to the tenths place
-    // re-render the graph with that value
-    setInterval(function() {
-        var score = Math.round((Math.random() * (ticks.length - 1) + 1) * 10) / 10;
-        renderMarker([score]);
-    }, 1000);
+        // generate a valid value on the scale, rounded to the tenths place
+        // re-render the graph with that value
+        setInterval(function() {
+            var score = Math.round((Math.random() * (ticks.length - 1) + 1) * 10) / 10;
+            renderMarker([score]);
+        }, 2000);
 
-    function init() {
-        renderGraph();
-        renderMarker([1]);
-    }
-
-    function renderGraph() {
-        var valueRange = svg.append('g')
-                .attr('id', 'value-range')
-                .attr('transform', 'translate(' + 0 + ',' + 0 + ')');
-
-        for (var ii = 1; ii < ticks.length; ii++) {
-            valueRange.append('line')
-                    .data([ii])
-                    .attr('class', 'base-line')
-                    .attr('y1', 0)
-                    .attr('y2', 0)
-                    .attr('x1', wrapCalcPosition.call(this, 0))
-                    .attr('x2', wrapCalcPosition.call(this, 1))
-                    .attr('stroke', wrapGetColor.call(this, 0.5))
-                    .attr('stroke-width', tick.lineWidth)
-                    .attr('transform', 'translate(0,' + (tick.major.height - (tick.lineWidth / 2)) + ')');
+        function init() {
+            renderGraph();
+            renderMarker([1]);
         }
 
-        valueRange.selectAll('.label')
-                .data(ticks)
-                .enter()
-                .append('line')
-                .attr('class', 'tick')
-                .attr('y1', function(d) {
-                    return tick.major.height - tick[d.type].height;
-                })
-                .attr('y2', tick.major.height)
-                .attr('x1', calcPosition)
-                .attr('x2', calcPosition)
-                .attr('stroke', getColor)
-                .attr('stroke-width', tick.lineWidth);
+        // this builds the graph with tick marks, base line and labels
+        function renderGraph() {
+            // create a group to hold everything
+            // this is helpful if you need to translate the whole thing to make room for your marker
+            var valueRange = svg.append('g')
+                    .attr('id', 'value-range');
 
-        valueRange.selectAll('.label')
-                .data(ticks)
-                .enter()
-                .append('text')
-                .attr('class', 'label')
-                .attr('y', tick.major.height * 2)
-                .attr('x', calcPosition)
-                .attr('text-anchor', 'middle')
-                .attr('font-size', '40px')
-                .attr('fill', getColor)
-                .text(function(d) {
-                    return d.value;
-                })
+            // draw the base line.  It's drawn first so that everything else appears on top of it
+            for (var ii = 1; ii < ticks.length; ii++) {
+                // it is bad practice to create functions in a loop
+                // so here, I have wrapped my functions and used .call() to call them with the correct data
+                valueRange.append('line')
+                        .data([ii])
+                        .attr('class', 'base-line')
+                        .attr('y1', 0)
+                        .attr('y2', 0)
+                        .attr('x1', wrapCalcPosition.call(this, 0))
+                        .attr('x2', wrapCalcPosition.call(this, 1))
+                        .attr('stroke', wrapGetColor.call(this, 0.5))
+                        .attr('stroke-width', tick.lineWidth)
+                        .attr('transform', 'translate(0,' + (tick.major.height - (tick.lineWidth / 2)) + ')');
+            }
 
-    }
-
-    function renderMarker(value) {
-        svg.select('#marker').remove();
-
-        svg.append('polygon')
-                .data(value)
-                .attr('id', 'marker')
-                .attr('points', (marker.width / 2 * -1) + ',0 ' + (marker.width / 2) + ',0 ' + 0 + ',' + marker.height)
-                .attr('fill', function(d) {
-                    return getColor({
-                        value: d
+            // add the tick marks to the graph
+            valueRange.selectAll('.tick')
+                    .data(ticks)
+                    .enter()
+                    .append('line')
+                    .attr('class', 'tick')
+                    .attr('y1', function(d) {
+                        return tick.major.height - tick[d.type].height;
                     })
-                })
-                .attr('transform', function(d) {
-                    return 'translate(' + calcPosition({value: d}) + ',' + (tick.major.height - marker.height - tick.lineWidth) + ')';
-                })
-    }
+                    .attr('y2', tick.major.height)
+                    .attr('x1', calcPosition)
+                    .attr('x2', calcPosition)
+                    .attr('stroke', getColor)
+                    .attr('stroke-width', tick.lineWidth);
 
-    function calcPosition(d) {
-        return (tick.increment * (d.value - 1)) + (marker.width / 2);
-    }
+            // add the labels below the tick marks
+            valueRange.selectAll('.label')
+                    .data(ticks)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'label')
+                    .attr('y', tick.major.height * 2)
+                    .attr('x', calcPosition)
+                    .attr('text-anchor', 'middle')
+                    .attr('font-size', '40px')
+                    .attr('fill', getColor)
+                    .text(function(d) {
+                        return d.value;
+                    })
 
-    function wrapCalcPosition(increment) {
-        return function(d) {
-            return calcPosition({
-                value: d + increment
-            });
-        };
-    }
-
-    function getColor(d) {
-        var color;
-        if (d.value < 2) {
-            color = 'blue';
-        } else if (d.value <= 4) {
-            color = 'purple';
-        } else{
-            color = 'red';
         }
 
-        return color;
-    }
+        // this adds the marker to the graph for the value
+        // value *must* be an array of one (or more) values for this to work
+        function renderMarker(value) {
+            // remove the old marker
+            // if you don't do this, d3 will just keep adding markers to the graph
+            svg.select('#marker').remove();
 
-    function wrapGetColor(increment) {
-        return function(d) {
-            return getColor({
-                value: d + increment
-            });
-        };
-    }
+            // add the marker
+            // the marker is drawn such that its center point is at 0,
+            // then we can use our normal calcPostion() to translate it into place
+            svg.append('polygon')
+                    .data(value)
+                    .attr('id', 'marker')
+                    .attr('points', (marker.width / 2 * -1) + ',0 ' + (marker.width / 2) + ',0 ' + 0 + ',' + marker.height)
+                    .attr('fill', function(d) {
+                        return getColor({
+                            value: d
+                        })
+                    })
+                    .attr('transform', function(d) {
+                        return 'translate(' + calcPosition({value: d}) + ',' + (tick.major.height - marker.height - tick.lineWidth) + ')';
+                    })
+        }
 
+        // calculate the correct position of any point on the graph
+        function calcPosition(d) {
+            // add 1/2 the marker width to account for the padding on the side of the graph
+            return (tick.increment * (d.value - 1)) + (marker.width / 2);
+        }
+
+        // wrap calcPosition() so we can use .call() to run the it in a loop
+        // .call() is used to pass in the increment
+        // then d3 evaluates the function that is returned and passes in the d variable
+        // finally, calcPosition is called using those arguments
+        function wrapCalcPosition(increment) {
+            return function(d) {
+                return calcPosition({
+                    value: d + increment
+                });
+            };
+        }
+
+        // calculate the correct color for a given value
+        // if you add more points, this function will need to be modified
+        // if the number of points is dynamic, you could base the return value using percentages of the number of points
+        // for example, top 20% of values are red, bottom 20% are blue, and the rest are purple
+        // note: this function could also be used to return a class name
+        function getColor(d) {
+            var color;
+            if (d.value < 2) {
+                color = 'blue';
+            } else if (d.value <= 4) {
+                color = 'purple';
+            } else{
+                color = 'red';
+            }
+
+            return color;
+        }
+
+        // wrap getColor() so we can use .call() to run the it in a loop
+        // .call() is used to pass in the increment
+        // then d3 evaluates the function that is returned and passes in the d variable
+        // finally, getColor is called using those arguments
+        // note: if your getColor() returns a class name, you have access to the element through `this`
+        // that means you could call, `d3.select(this).classed(className, true)` to add the class
+        function wrapGetColor(increment) {
+            return function(d) {
+                return getColor({
+                    value: d + increment
+                });
+            };
+        }
+    })();
 </script>
 </body>
 </html>
